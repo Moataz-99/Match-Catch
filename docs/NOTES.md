@@ -13,7 +13,6 @@ rules, test-bed tricks, gotchas, open questions and context about the owner.
 | Current source (v1.0.0, git repo with 2 commits: "v5.0 baseline", "v1.0.0 …") | cloud sandbox `/home/claude/cmc-vscode` (ephemeral) and the delivered `config-match-catch-1.0.0-source.zip` |
 | Installable extension | `dist/config-match-catch.vsix` (delivered as `config-match-catch-1.0.0.vsix`) |
 | Context file | Voda project → `claude/CLAUDE.md` (kept in sync with the repo) |
-| Old single-HTML tool (v4.2, GitLab REST + OAuth) | Voda project → `claude/config-match-catch.html`, notes in `claude/config-match-tool.md`; superseded by the extension, kept for reference |
 | Older HTML repo hand-off | `config-match-catch-repo.zip` (sent earlier in chat) |
 | Test VS Code | code-server 4.145.2 standalone at `/home/claude/cs/code-server-4.145.2-linux-amd64` (sandbox) |
 | Test bed | `/home/claude/e2e` (made by `scripts/e2e-setup.sh`) |
