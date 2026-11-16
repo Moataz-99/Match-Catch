@@ -1,6 +1,7 @@
 # CLAUDE.md — Config Match & Catch (VS Code extension)
 
-Context for Claude Code. Read this first; `docs/HISTORY.md` has the why behind every decision.
+Context for Claude Code. Read this first; `docs/HISTORY.md` has the why behind every decision; `docs/NOTES.md` has
+internals, data shapes, exact rules, test-bed tricks, gotchas and open questions.
 
 ## What this is
 
