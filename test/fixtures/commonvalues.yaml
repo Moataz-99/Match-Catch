@@ -1,0 +1,115 @@
+# Sample Helm values from the bwce-demo test namespace (shared by the user, 2026-08).
+# Passwords replaced with placeholders; structure, hosts and quirks kept on purpose.
+common:
+  image:
+    tag: latest 
+  namespace: bwce-demo
+  baseDomain: bwce-demo.apps.ocp-test.internal.eg.vodafone.com
+  redisDomain: redisapi-bwce-demo.apps.ocp-test.internal.eg.vodafone.com
+  CommonResourcesdata:
+     TZ: UTC
+     JAVA_OPTS: >-
+      -Xms1024m -Xmx1024m
+     ################ DATABASES ##################
+     ### Transactions DB  ###
+     databases_engines_trans_url: jdbc:oracle:thin:@10.230.86.196:1521:TRLOG1
+     databases_engines_trans_username: SYSADM_TRANS
+     databases_engines_trans_password: Redacted$trans_000000
+     databases_engines_trans_connection_timeout: 60000
+     databases_engines_trans_login_timeout: 10000
+     databases_engines_trans_max_pool_size: 20
+     ### ODS DB ###
+     ods_database_password: Redacted;'00000!@#$%
+     ods_database_username: TIBCOODS
+     ods_database_URL: jdbc:oracle:thin:@(DESCRIPTION=(FAILOVER=on)(ADDRESS=(PROTOCOL=TCP)(HOST=10.230.85.142)(PORT=1521))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=cbatestsrv)))
+     ods_database_Schema: TIBCO2
+     ods_database_maximumPoolSize: 30
+     ### EAI DB ###
+     eai_database_enabled: false
+     eai_database_URL: jdbc:oracle:thin:@10.230.86.249:1527:EAIOTST
+     eai_database_username: sysadm
+     eai_database_password: Redacted_eai_000000
+     eai_database_connection_timeout: 60000
+     ################CommonResources##################
+     ### ADB LOG ###
+     ADBLOG_Jms_password: redacted_jms
+     ADBLOG_Jms_user: ODS
+     ADBLOG_Jms_LoggingQueueConnectionFactory: LoggingQueueConnectionFactory
+     ADBLOG_Jms_LoggingTopicConnectionFactory: LoggingTopicConnectionFactory
+     ADBLOG_Jms_EAILog_Queue: Q.VFE.ADAPTER.CLE.HANDLER.EAI.LOG
+     jms_max_concurrency: 10
+     jms_receive_timeout: 10
+     ### JMS ###
+     jms_maxSessions: 10
+     jms_password: redacted_jms
+     jms_username: ODS
+     jms_timeout: 10000
+     jms_jndi_contextUrl: tcp://10.230.85.205:7333
+     jms_jndi_user: CSMService
+     jms_jndi_password: redacted_jms
+     ### General ###
+     defaultTimeOut: 60000
+     log_errorLog: DB
+     log_database: eType
+     log_vfecleadapter_http_enable: false
+     log_vfecleadapter_http_host: 10.230.85.205
+     log_vfecleadapter_http_port: 32500
+     log_vfecleadapter_http_timeout: 10000
+     log_mask_keys: IDType,FirstName,LastName,Country,Address,City,Nationality
+     ### ADMIN SERVER ####
+     adminserver_url: http://adminserver:9081
+     adminserver_username: admin
+     adminserver_password: redacted_admin
+     ################ Kafka ::: Confluent ##################
+     kafka_bootstrap_servers: 10.230.85.241:9094,10.230.85.242:9094,10.230.85.243:9094
+     kafka_schema_registry_url: http://10.230.85.243:8081
+     kafka_oAuth_Token_URL: https://keycloak-bwce-demo.apps.ocp-test.internal.eg.vodafone.com/realms/kafka/protocol/openid-connect/token
+    ######## DOMAIN **** SERVICES #######
+    ## GetAggregatedContractProfiles Queue###
+     jms_ODS_QUEUE_GetAggregatedContractProfiles: ODS.GetAggregatedContractProfiles.SY
+    #### SMPP Messaging ####
+     smpp_messaging_host: 172.28.36.61
+     smpp_messaging_port: 1035
+     smpp_messaging_systemType: smppuser
+     smpp_messaging_systemId: smppuser
+     smpp_messaging_password: redacted_smpp
+     smpp_messaging_enquireLinkTimer: 30000
+     smpp_messaging_transactionTimer: 5000
+
+  #### Fluentbit #####
+
+  
+  fluentbitConfigmap:
+    fluentbit: |
+      [SERVICE]
+          Flush        5
+          Daemon       Off
+          Log_Level    debug
+          Parsers_File parsers.conf
+          HTTP_Server  On
+          HTTP_Listen  0.0.0.0
+          HTTP_Port    2020
+
+      [INPUT]
+          Name                tail
+          Path                /var/log/app/elastic.log
+          Tag                 elastic.log
+          Parser              parser_json
+
+      [OUTPUT]
+          Name                es
+          Host                10.230.85.64
+          Port                9207
+          HTTP_User           redacted
+          HTTP_Passwd         redacted
+          Logstash_Format     True
+          Logstash_Prefix     redis-testing
+          Match               *
+          Suppress_Type_Name  On
+ 
+    parsersconf: |
+      [PARSER]
+          Name        parser_json
+          Format      json
+          Time_Key    started_at
+          Time_Format %s

@@ -1,0 +1,187 @@
+{
+  "name": "config-match-catch",
+  "displayName": "Config Match & Catch",
+  "description": "Keeps TIBCO BW5 .properties and Spring Boot Helm values in agreement across environments: find, validate and add variables on both sides, fix mismatches, and send fixes as a branch + merge request.",
+  "version": "1.0.0",
+  "publisher": "vf-eg-integration",
+  "private": true,
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "icon": "media/icon.png",
+  "main": "./extension/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "extensionDependencies": [
+    "vscode.git"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "configMatch.open",
+        "title": "Open Config Match & Catch",
+        "category": "Config Match",
+        "icon": "$(git-compare)"
+      },
+      {
+        "command": "configMatch.addVariable",
+        "title": "Add a variable (both sides, all environments)",
+        "category": "Config Match",
+        "icon": "$(add)"
+      },
+      {
+        "command": "configMatch.reload",
+        "title": "Reload both files",
+        "category": "Config Match",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "configMatch.settings",
+        "title": "Edit paths and environments",
+        "category": "Config Match",
+        "icon": "$(gear)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "configMatch",
+          "title": "Config Match",
+          "icon": "media/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "configMatch": [
+        {
+          "id": "configMatch.environments",
+          "name": "Environments"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "configMatch.addVariable",
+          "when": "view == configMatch.environments",
+          "group": "navigation@1"
+        },
+        {
+          "command": "configMatch.settings",
+          "when": "view == configMatch.environments",
+          "group": "navigation@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Config Match & Catch",
+      "properties": {
+        "configMatch.environments": {
+          "type": "array",
+          "order": 1,
+          "markdownDescription": "Each environment = one BW5 file + one Spring file. Paths are **relative to the repository folder**. Leave a path empty and the extension asks you to pick the file once, then saves it here.",
+          "items": {
+            "type": "object",
+            "required": [
+              "name"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Shown in the switcher, e.g. Production"
+              },
+              "bw5File": {
+                "type": "string",
+                "description": "Path inside the BW5 repo, e.g. _build/env_prd.properties"
+              },
+              "springFile": {
+                "type": "string",
+                "description": "Path inside the Spring repo, e.g. common/production/common-values.yaml"
+              },
+              "springRoot": {
+                "type": "string",
+                "description": "YAML block that holds the properties, e.g. common.CommonResourcesdata (empty = auto-detect)"
+              }
+            }
+          },
+          "default": [
+            {
+              "name": "Production",
+              "bw5File": "_build/env_prd.properties",
+              "springFile": "common/production/common-values.yaml",
+              "springRoot": ""
+            },
+            {
+              "name": "Testing",
+              "bw5File": "",
+              "springFile": "",
+              "springRoot": ""
+            }
+          ]
+        },
+        "configMatch.bw5RepoFolder": {
+          "type": "string",
+          "order": 2,
+          "default": "",
+          "markdownDescription": "Folder where `tibco/Common-Resources` is cloned on this computer. Empty = find it among the folders open in VS Code."
+        },
+        "configMatch.springRepoFolder": {
+          "type": "string",
+          "order": 3,
+          "default": "",
+          "markdownDescription": "Folder where `integration-java/helm-template` is cloned on this computer. Empty = find it among the folders open in VS Code."
+        },
+        "configMatch.bw5RepoName": {
+          "type": "string",
+          "order": 4,
+          "default": "Common-Resources",
+          "description": "Folder name used to find the BW5 repo automatically."
+        },
+        "configMatch.springRepoName": {
+          "type": "string",
+          "order": 5,
+          "default": "helm-template",
+          "description": "Folder name used to find the Spring repo automatically."
+        },
+        "configMatch.baseBranch": {
+          "type": "string",
+          "order": 6,
+          "default": "master",
+          "description": "Branch the files are read from and that merge requests target. Changes never go to it directly."
+        },
+        "configMatch.openMergeRequestPage": {
+          "type": "boolean",
+          "order": 7,
+          "default": true,
+          "description": "After pushing a branch, open GitLab's 'new merge request' page in the browser."
+        },
+        "configMatch.showProblems": {
+          "type": "boolean",
+          "order": 8,
+          "default": true,
+          "description": "Show mismatches and warnings in the Problems panel, on the right line of each file."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node scripts/build.js",
+    "test": "node --test test/engine.test.js test/util.test.js test/checks.test.js",
+    "package": "node scripts/build.js && npx --yes @vscode/vsce@3 package --no-dependencies --allow-missing-repository --skip-license -o dist/config-match-catch.vsix",
+    "test:vscode": "node scripts/build.js && node test/vscode.e2e.js",
+    "smoke": "node scripts/build.js && node test/support/smoke.js"
+  },
+  "devDependencies": {
+    "@babel/core": "^8.1.0",
+    "@babel/preset-react": "^8.0.1",
+    "js-yaml": "4.1.0",
+    "playwright-core": "^1.65.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  }
+}
