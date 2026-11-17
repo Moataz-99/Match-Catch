@@ -1,0 +1,7 @@
+# Only what the installed extension needs: package.json, README, media/, extension/*.js, dist/webview.html
+**
+!package.json
+!README.md
+!media/**
+!extension/**
+!dist/webview.html
