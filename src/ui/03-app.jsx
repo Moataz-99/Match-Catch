@@ -169,6 +169,7 @@ function App(){
     if(r){ takeData(r); say("Up to date with "+r.baseBranch+(changes.length?" — your "+changes.length+" unsent edit(s) are kept":"")); }
   };
   const chooseRepo=async(env,side)=>{ const r=await run("",()=>host.call("chooseRepo",{env,side})); if(r&&!r.cancelled) takeData(r,{env}); };
+  const setupFolder=async()=>{ const r=await run("Cloning the repositories (needs the VPN)…",()=>host.call("setup",{current:envName})); if(r&&!r.cancelled){ takeData(r); say("Ready: "+r.setup.repos.map(x=>x.name+(x.cloned?" cloned":" found")).join(", ")+" in "+r.setup.folder); setTab("home"); } };
   const chooseFile=async(env,side)=>{ const r=await run("",()=>host.call("chooseFile",{env,side})); if(r&&!r.cancelled){ takeData(r,{env}); say("Saved in your settings — it will be read from there from now on"); } };
   const addEnvironment=async()=>{ const r=await run("",()=>host.call("addEnvironment")); if(r&&!r.cancelled){ takeData(r,{env:r.current}); setTab("files"); } };
   const changeRoot=(env,v)=>{ setRoots(x=>Object.assign({},x,{[env]:v})); host.call("setRoot",{env,root:v==="__AUTO__"?"":v}).catch(()=>{}); };
@@ -341,7 +342,7 @@ function App(){
     {id:"compare",label:"Comparison",n:analysis.pairs.length},{id:"onlyb",label:"Only in BW5",n:analysis.onlyB.length},{id:"onlys",label:"Only in Spring",n:analysis.onlyS.length}];
   const common={q,setQ,queue,ignore,copy,say,limit,setLimit};
   const ctxv={hs,envName,envList,parsedAll,analyses,checkEnvs,changes,learned,fileOf,editValue,putChanges,setAddSpec,addTwin,setTab,switchEnv,
-    pullLatest,busy,q,setQ,say,setFocusVar,focusVar,origValue,twinOf,addEnvironment,chooseFile,chooseRepo,changeRoot,roots,reload};
+    pullLatest,busy,q,setQ,say,setFocusVar,focusVar,origValue,twinOf,addEnvironment,chooseFile,chooseRepo,setupFolder,changeRoot,roots,reload};
 
   return (
   <div className="app">

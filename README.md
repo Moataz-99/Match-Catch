@@ -9,9 +9,11 @@ VS Code → Extensions → `…` (top right) → **Install from VSIX…** → pi
 
 ## First time
 
-1. Open your clones of **Common-Resources** and **helm-template** in VS Code (File → Add Folder to Workspace).
-   The extension finds them by name. If they're somewhere else, it asks you once.
-2. Click **Config Match** in the left bar.
+1. Connect the VPN.
+2. VS Code asks: *pick one folder to work in*. Press **Choose a folder…** and pick any folder (for example
+   `C:\work`). The extension clones **Common-Resources** and **helm-template** into it and opens them. If they are
+   already in that folder, it just uses them. (Later: **Choose work folder** in the Config Match side bar.)
+3. Click **Config Match** in the left bar.
 3. Production is set up already. For any other environment, open **Files** and press **Pick the file…**
    once per file. The path is saved in your settings (Settings → Config Match & Catch).
 
@@ -52,6 +54,6 @@ It **alerts you** when a file you just saved contains a duplicate key.
 
 ## Good to know
 
-- Git work uses VS Code's own Git, so it uses the same login as TortoiseGit. You need the VPN for pull and push.
+- Git work uses VS Code's own Git, so it uses the same login as TortoiseGit. You need the VPN for clone, pull and push.
 - Files are written back in their own encoding (Latin-1 or UTF-8). Comments, order and spacing stay as they were.
 - Learned naming rules are kept on your computer. Export or import them on the **Rules** tab to share with the team.

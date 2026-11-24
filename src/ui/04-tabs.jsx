@@ -1,6 +1,6 @@
 /* ============================== FILES ============================== */
 function FilesTab(p){
-  const {hs,envName,envList,parsedAll,busy,reload,pullLatest,chooseRepo,chooseFile,changeRoot,roots,addEnvironment,switchEnv,setTab}=p;
+  const {hs,envName,envList,parsedAll,busy,reload,pullLatest,chooseRepo,setupFolder,chooseFile,changeRoot,roots,addEnvironment,switchEnv,setTab}=p;
   if(!hs||!envList) return <div className="card"><div className="empty"><span className="spin"></span> Starting…</div></div>;
   const base=hs.baseBranch||"master";
   const Side=({env,side,label,cls})=>{
@@ -18,7 +18,8 @@ function FilesTab(p){
       <div style={{display:"flex",gap:6,marginTop:8,flexWrap:"wrap"}}>
         {o.abs&&<button className="btn sm" onClick={()=>host.call("reveal",{env,side}).catch(()=>{})}>Open file</button>}
         {o.code!=="no-repo"&&<button className={"btn sm"+(o.code==="no-file"?" pri":"")} disabled={!!busy} onClick={()=>chooseFile(env,side)}>{o.code==="no-file"?"Pick the file…":"Pick a different file…"}</button>}
-        <button className={"btn sm"+(o.code==="no-repo"?" pri":" gh")} disabled={!!busy} onClick={()=>chooseRepo(env,side)}>{o.code==="no-repo"?"Choose repository folder…":"Change repository…"}</button>
+        {o.code==="no-repo"&&<button className="btn sm pri" disabled={!!busy} onClick={setupFolder} title="Pick one folder: both repositories are cloned there (or used, if already there)">Clone both into a folder…</button>}
+        <button className="btn sm gh" disabled={!!busy} onClick={()=>chooseRepo(env,side)}>{o.code==="no-repo"?"I already cloned it — choose folder…":"Change repository…"}</button>
       </div>
     </div>);
   };

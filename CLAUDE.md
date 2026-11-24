@@ -32,7 +32,9 @@ all of them are loaded at once (the app compares them with each other: "missing 
 1. **No GitLab API, no tokens, no Node/Python network code.** The GitLab certificate comes from an internal CA that
    Node and Python don't trust. All git work goes through **VS Code's built-in Git extension API** (`vscode.git`,
    `getAPI(1)`: createBranch, add, commit, push, checkout, pull), which runs the user's Git for Windows with the same
-   certificate store and credential manager as TortoiseGit.
+   certificate store and credential manager as TortoiseGit. Exception: **Choose work folder** (`setupWorkFolder`)
+   clones by running that same git binary (`api.git.path`), because `api.clone()` hands back a clone VS Code already
+   knows instead of cloning into the chosen folder.
 2. **Never commit to the base branch** (`configMatch.baseBranch`, default master). propose(): check every repo is on
    base with nothing staged → `createBranch(config-sync/<env>-<timestamp>, checkout)` → write → add → commit → push
    (set upstream) → `checkout(base)` again → open `<web>/-/merge_requests/new?…` (web URL derived from the origin
@@ -71,14 +73,14 @@ scripts/build.js         → dist/webview.html (React, ReactDOM, js-yaml, engine
 scripts/e2e-setup.sh     test bed: bare "GitLab" repos (Production + Testing files, Latin-1 line), clones, settings with
                          Production/Testing/Staging, code-server with the .vsix installed
 test/*.test.js           engine, util, checks (node:test)       test/support/smoke.js  webview in Chromium, fake host
-test/vscode.e2e.js       44 checks in real VS Code with real git (see the file for the list)
+test/vscode.e2e.js       51 checks in real VS Code with real git (see the file for the list)
 ```
 
 ## Commands
 
 ```bash
 npm install
-npm test                 # engine + util + checks unit tests (30)
+npm test                 # engine + util + checks unit tests (31)
 npm run smoke            # build + webview in Chromium with a fake host (fast, catches runtime errors)
 npm run package          # build + dist/config-match-catch.vsix
 CODE_SERVER=/path/to/code-server/bin/code-server ./scripts/e2e-setup.sh   # prints the command for:
@@ -90,7 +92,7 @@ Run all three after any change. code-server standalone: github.com/coder/code-se
 
 `configMatch.environments` [{name, bw5File, springFile, springRoot}] · `bw5RepoFolder` / `springRepoFolder` (empty =
 find among open folders and VS Code's git repos by name `bw5RepoName`/`springRepoName`, then by the file existing) ·
-`baseBranch` · `openMergeRequestPage` · `showProblems`. Learned rules are in `globalState` (`cmc.learned`), shared by all
+`gitlabUrl` / `bw5RepoPath` / `springRepoPath` (what Choose work folder clones) · `baseBranch` · `openMergeRequestPage` · `showProblems`. Learned rules are in `globalState` (`cmc.learned`), shared by all
 environments; export/import JSON on the Rules tab.
 
 ## How the matcher works (src/engine.js → `analyze`)
@@ -122,6 +124,9 @@ earlier measurement was 13 auto pairs, all correct, 3 connection groups, ~12 to 
 ## Status and next ideas
 
 - v1.0.0, 2026-11-16: 30 unit tests + 44 real-VS-Code checks pass (code-server 4.145 / VS Code 1.145, Linux).
+- 2026-11-24: **Choose work folder** — pick one folder, both repos are cloned there (or reused), saved in settings and
+  loaded; offered at start-up when the repos aren't found, on Home, Files tab and side bar. Settings `gitlabUrl`,
+  `bw5RepoPath`, `springRepoPath`. 31 unit tests + 51 real-VS-Code checks pass.
   **Not yet run on the user's Windows laptop against the real GitLab** — first launch is the first real run.
 - Comparison takes ~0.2 s per environment on a 1,250-key file; cached per environment.
 - Ideas not built: shared rules file in git (team-wide learning), promotion report, CI check reusing `src/engine.js`

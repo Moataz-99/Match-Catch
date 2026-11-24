@@ -2185,6 +2185,16 @@ function App() {
       env
     });
   };
+  const setupFolder = async () => {
+    const r = await run("Cloning the repositories (needs the VPN)…", () => host.call("setup", {
+      current: envName
+    }));
+    if (r && !r.cancelled) {
+      takeData(r);
+      say("Ready: " + r.setup.repos.map(x => x.name + (x.cloned ? " cloned" : " found")).join(", ") + " in " + r.setup.folder);
+      setTab("home");
+    }
+  };
   const chooseFile = async (env, side) => {
     const r = await run("", () => host.call("chooseFile", {
       env,
@@ -2655,6 +2665,7 @@ function App() {
     addEnvironment,
     chooseFile,
     chooseRepo,
+    setupFolder,
     changeRoot,
     roots,
     reload
@@ -2837,6 +2848,7 @@ function FilesTab(p) {
     reload,
     pullLatest,
     chooseRepo,
+    setupFolder,
     chooseFile,
     changeRoot,
     roots,
@@ -2928,11 +2940,16 @@ function FilesTab(p) {
       className: "btn sm" + (o.code === "no-file" ? " pri" : ""),
       disabled: !!busy,
       onClick: () => chooseFile(env, side)
-    }, o.code === "no-file" ? "Pick the file…" : "Pick a different file…"), React.createElement("button", {
-      className: "btn sm" + (o.code === "no-repo" ? " pri" : " gh"),
+    }, o.code === "no-file" ? "Pick the file…" : "Pick a different file…"), o.code === "no-repo" && React.createElement("button", {
+      className: "btn sm pri",
+      disabled: !!busy,
+      onClick: setupFolder,
+      title: "Pick one folder: both repositories are cloned there (or used, if already there)"
+    }, "Clone both into a folder…"), React.createElement("button", {
+      className: "btn sm gh",
       disabled: !!busy,
       onClick: () => chooseRepo(env, side)
-    }, o.code === "no-repo" ? "Choose repository folder…" : "Change repository…")));
+    }, o.code === "no-repo" ? "I already cloned it — choose folder…" : "Change repository…")));
   };
   return React.createElement("div", null, React.createElement("div", {
     className: "toolbar"
@@ -4420,8 +4437,10 @@ function HomeTab(p) {
     setFocusVar,
     q,
     setQ,
-    fileOf
+    fileOf,
+    setupFolder
   } = p;
+  const noRepo = (envList || []).some(e => ["bw5", "spring"].some(s => e[s] && e[s].code === "no-repo"));
   const [hq, setHq] = useState("");
   const inputRef = useRef(null);
   useEffect(() => {
@@ -4606,7 +4625,13 @@ function HomeTab(p) {
     className: "res"
   }, React.createElement("div", null), React.createElement("div", {
     className: "hint"
-  }, "Nothing found."), React.createElement("div", null), React.createElement("div", null)))), !an && React.createElement("div", {
+  }, "Nothing found."), React.createElement("div", null), React.createElement("div", null)))), noRepo && React.createElement("div", {
+    className: "banner"
+  }, "⚠ The repositories aren't on this computer yet (or VS Code can't find them). Pick one folder and both are cloned there and opened — needs the VPN.", React.createElement("button", {
+    className: "btn sm pri",
+    disabled: !!busy,
+    onClick: setupFolder
+  }, "Choose a folder — clone both…")), !an && !noRepo && React.createElement("div", {
     className: "banner"
   }, "⚠ “", envName, "” can't be compared yet — ", (!fileOf(envName, "bw5") ? "the BW5 file" : "") + (!fileOf(envName, "bw5") && !fileOf(envName, "spring") ? " and " : "") + (!fileOf(envName, "spring") ? "the Spring file" : ""), " ", !fileOf(envName, "bw5") && !fileOf(envName, "spring") ? "are" : "is", " not set up.", React.createElement("button", {
     className: "btn sm pri",

@@ -94,4 +94,13 @@ function decode(buf) {
   return bad ? { text: buf.toString("latin1"), enc: "latin1" } : { text: utf, enc: "utf8" };
 }
 
-module.exports = { decode, remoteToWebUrl, newMergeRequestUrl, stamp, slug, branchName, findPropsLine, findYamlLine, nameMatches, samePath };
+/** GitLab address + project path -> https clone URL. ("https://host/", "/tibco/Common-Resources") -> https://host/tibco/Common-Resources.git */
+function cloneUrl(gitlab, project) {
+  const g = String(gitlab || "").trim().replace(/\/+$/, ""), p = String(project || "").trim().replace(/^\/+|\/+$/g, "").replace(/\.git$/, "");
+  if (!g || !p) return "";
+  return (/^[a-z]+:\/\//i.test(g) ? g : "https://" + g) + "/" + p + ".git";
+}
+/** folder name git gives a clone of this project: the last part of the path */
+function cloneFolderName(project) { return String(project || "").replace(/\.git$/, "").replace(/[\/]+$/, "").split(/[\\/]/).pop() || ""; }
+
+module.exports = { cloneUrl, cloneFolderName, decode, remoteToWebUrl, newMergeRequestUrl, stamp, slug, branchName, findPropsLine, findYamlLine, nameMatches, samePath };

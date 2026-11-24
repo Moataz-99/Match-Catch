@@ -246,6 +246,47 @@ const CR = "tibco/Common-Resources.git", HT = "integration-java/helm-template.gi
   }
   ok(tabsOk, "all 11 tabs render in all 3 environments");
 
+  /* 14. one-step setup: repos not found → pick one empty folder → both repos cloned there, saved, loaded */
+  const FRESH = require("path").join(require("path").dirname(WORK), "fresh");
+  fs.mkdirSync(FRESH, { recursive: true });
+  const userSettings = () => JSON.parse(fs.readFileSync(SETTINGS, "utf8"));
+  const setupBtn = app.locator("button", { hasText: "clone both" });
+  // point both sides at a folder, then delete it: "the repos aren't on this computer"
+  const GONE = FRESH + "/gone"; fs.mkdirSync(GONE, { recursive: true });
+  await app.locator(".envbtn", { hasText: "Production" }).click(); await wait(500);
+  for (const i of [0, 1]) {
+    await tab("Files");
+    const prodCard = app.locator(".card").filter({ has: app.locator("h3", { hasText: /^Production/ }) });
+    await prodCard.locator("button", { hasText: "Change repository" }).nth(i).click(); await wait(1500);
+    await page.locator(".quick-input-widget input").fill(GONE); await wait(500); await page.keyboard.press("Enter"); await wait(2500);
+  }
+  fs.rmSync(GONE, { recursive: true });
+  await tab("Files"); await app.locator("button", { hasText: "Reload" }).first().click(); await wait(2500);
+  await tab("Home");
+  ok(await setupBtn.count() === 1, "Home offers to clone both repos when they aren't found");
+  await shot("14-not-found");
+  await setupBtn.click(); await wait(1500);
+  await page.locator(".quick-input-widget input").fill(FRESH);
+  await wait(500); await page.keyboard.press("Enter");
+  let s = {};
+  for (let i = 0; i < 60; i++) { await wait(500); s = userSettings(); if (s["configMatch.springRepoFolder"] === FRESH + "/helm-template") break; }
+  await wait(2500);
+  ok(fs.existsSync(FRESH + "/Common-Resources/.git") && fs.existsSync(FRESH + "/helm-template/.git"), "both repos cloned into the chosen folder");
+  ok(s["configMatch.bw5RepoFolder"] === FRESH + "/Common-Resources" && s["configMatch.springRepoFolder"] === FRESH + "/helm-template",
+    "both clone folders saved in settings", JSON.stringify([s["configMatch.bw5RepoFolder"], s["configMatch.springRepoFolder"]]));
+  ok(/cloned/.test(await app.locator("body").innerText()), "app says the repos were cloned");
+  ok(await setupBtn.count() === 0 && (await app.locator(".stats").count()) > 0, "files loaded from the new clones (numbers on Home)");
+  await tab("Files");
+  ok((await app.locator(".main").innerText()).includes(FRESH + "/Common-Resources"), "Files tab reads from the new clone");
+  await shot("15-cloned");
+  // same folder again from the command palette: nothing is cloned twice
+  await page.keyboard.press("F1"); await page.keyboard.type("Config Match: Choose work folder"); await wait(700); await page.keyboard.press("Enter");
+  await wait(1500);
+  await page.locator(".quick-input-widget input").fill(FRESH);
+  await wait(500); await page.keyboard.press("Enter"); await wait(4000);
+  const toast = await page.locator(".notifications-toasts").innerText().catch(() => "");
+  ok(/Common-Resources found, helm-template found/.test(toast), "second time: existing clones are reused, not cloned again", toast);
+
   await browser.close();
   console.log("\n" + passed + " passed, " + failed + " failed");
   process.exit(failed ? 1 : 0);

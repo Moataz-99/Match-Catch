@@ -1,7 +1,8 @@
 "use strict";
 /* Config Match & Catch — VS Code extension host.
-   Reads the config files of every environment from the repos already cloned on this computer and uses VS Code's own
-   Git (the same git + credentials the user already has, like TortoiseGit) to branch, commit and push.
+   Reads the config files of every environment from the two repos on this computer ("Choose work folder" clones them
+   if they aren't there yet) and uses VS Code's own Git (the same git + credentials the user already has, like
+   TortoiseGit) to clone, branch, commit and push.
    No GitLab API, no tokens. */
 const vscode = require("vscode");
 const fs = require("fs");
@@ -280,6 +281,83 @@ async function pullLatest(p) {
   return res;
 }
 
+/* ------------------------------------------------------------ one step: pick a folder → both repos cloned there */
+/** the GitLab project of each side, its clone URL and the folder name git gives it */
+function repoDef(side) {
+  const project = String(cfg().get(side === "bw5" ? "bw5RepoPath" : "springRepoPath") || "").trim();
+  return { project, url: U.cloneUrl(cfg().get("gitlabUrl"), project), name: U.cloneFolderName(project) || cfg().get(side === "bw5" ? "bw5RepoName" : "springRepoName") };
+}
+const isRepo = p => isDir(path.join(p, ".git")) || isFile(path.join(p, ".git"));
+/** clone with the git that VS Code's Git uses (same program, certificates and login as TortoiseGit). Not api.clone():
+    that one hands back an existing clone VS Code already knows instead of cloning into the chosen folder. */
+async function cloneRepo(parent, d) {
+  const api = await git();
+  const target = path.join(parent, d.name);
+  const hint = " Check that the VPN is on and that you can open " + d.url.replace(/\.git$/, "") + " in the browser.";
+  await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Cloning " + d.project + " into " + parent + "…", cancellable: true },
+    (progress, token) => new Promise((res, rej) => {
+      const cp = require("child_process").execFile((api.git && api.git.path) || "git", ["clone", d.url, target],
+        { env: Object.assign({}, process.env, { GIT_TERMINAL_PROMPT: "0" }), maxBuffer: 1 << 24, windowsHide: true },
+        (e, so, se) => {
+          if (token.isCancellationRequested) return rej(new Error("Cloning " + d.project + " was cancelled."));
+          if (!e) return res();
+          const why = (String(se || "").match(/^(fatal|error):.*$/m) || [String(se || e.message).trim()])[0];
+          rej(new Error("Couldn't clone " + d.project + ": " + why + "." + hint));
+        });
+      token.onCancellationRequested(() => cp.kill());
+    }));
+  if (!isRepo(target)) throw new Error("Cloning " + d.project + " didn't create " + target + "." + hint);
+  return target;
+}
+/** Ask for one folder, clone whichever of the two repos isn't there yet, remember both folders, load everything. */
+async function setupWorkFolder(p) {
+  let parent = p && p.folder;
+  if (!parent) {
+    const pick = await vscode.window.showOpenDialog({ canSelectFolders: true, canSelectFiles: false, canSelectMany: false,
+      openLabel: "Use this folder", title: "Pick a folder to work in — both repositories are cloned into it (or used, if already there)" });
+    if (!pick || !pick[0]) return { cancelled: true };
+    parent = pick[0].fsPath;
+  }
+  // picked one of the two repos itself → work in the folder around it
+  if (isRepo(parent) && SIDES.some(s => U.nameMatches(parent, repoDef(s).name))) parent = path.dirname(parent);
+  const repos = [];
+  for (const side of SIDES) {
+    const d = repoDef(side);
+    if (!d.url) throw new Error("The GitLab address or the " + LABEL[side] + " project path is empty. Fill them in under Settings → Config Match.");
+    const target = path.join(parent, d.name);
+    let folder = target, cloned = false;
+    if (!isRepo(target)) {
+      if (isDir(target) && fs.readdirSync(target).length) throw new Error("“" + target + "” already exists but is not a git repository. Rename or empty it, then try again.");
+      folder = await cloneRepo(parent, d); cloned = true;
+    }
+    await updateSetting(side === "bw5" ? "bw5RepoFolder" : "springRepoFolder", folder);
+    repos.push({ side, name: path.basename(folder), folder, cloned });
+  }
+  const res = await loadAll(p && p.current);
+  res.setup = { folder: parent, repos };
+  return res;
+}
+const setupSummary = s => s.repos.map(r => r.name + (r.cloned ? " cloned" : " found")).join(", ") + " in " + s.folder;
+/** command / sidebar / first-run prompt: set up, then open the app on the loaded files */
+async function setupCommand(folder) {
+  try {
+    const r = await setupWorkFolder({ folder: typeof folder === "string" ? folder : undefined });
+    if (r.cancelled) return;
+    if (panel) post({ type: "reload" }); else openPanel();
+    vscode.window.showInformationMessage("Config Match is ready: " + setupSummary(r.setup) + ".");
+  } catch (e) { vscode.window.showErrorMessage(gitErr(e) || String(e)); }
+}
+/** on start-up: if the repos can't be found, offer the one-step setup */
+async function offerSetup() {
+  const env = environments()[0];
+  if (!env) return;
+  const found = await Promise.all(SIDES.map(s => resolveRepo(s, env)));
+  if (!found.some(r => r.error)) return;
+  const go = "Choose a folder…";
+  const b = await vscode.window.showInformationMessage("Config Match: pick one folder to work in. Common-Resources and helm-template will be cloned there (or used, if already there) and opened.", go, "Not now");
+  if (b === go) setupCommand();
+}
+
 /* ------------------------------------------------------------ choosing folders and files once */
 async function chooseRepo(p) {
   const side = p.side;
@@ -370,6 +448,7 @@ const handlers = {
   setCurrent: async p => { await ctx.globalState.update("cmc.lastEnv", p.env); updateStatus(p.env); return true; },
   pull: p => pullLatest(p),
   chooseRepo: p => chooseRepo(p),
+  setup: p => setupWorkFolder(p),
   chooseFile: p => chooseFile(p),
   addEnvironment: () => addEnvironment(),
   setRoot: async p => { await updateEnv(p.env, { springRoot: p.root || "" }); return true; },
@@ -446,7 +525,8 @@ class EnvTree {
     const envs = environments().map(e => item(e.name, "server-environment", "configMatch.open", [e.name],
       (e.bw5File && e.springFile) ? "" : "files not chosen yet", "BW5: " + (e.bw5File || "—") + "\nSpring: " + (e.springFile || "—")));
     return [item("Open Config Match", "home", "configMatch.open"), item("Add a variable…", "add", "configMatch.addVariable")]
-      .concat(envs, [item("Edit paths and environments…", "gear", "configMatch.settings")]);
+      .concat(envs, [item("Choose work folder (clones both repos)…", "repo-clone", "configMatch.setup"),
+        item("Edit paths and environments…", "gear", "configMatch.settings")]);
   }
 }
 
@@ -464,9 +544,11 @@ function activate(context) {
     vscode.commands.registerCommand("configMatch.addVariable", () => openPanel(undefined, "addVariable")),
     vscode.commands.registerCommand("configMatch.reload", () => { openPanel(); post({ type: "reload" }); }),
     vscode.commands.registerCommand("configMatch.settings", () => handlers.openSettings()),
+    vscode.commands.registerCommand("configMatch.setup", folder => setupCommand(folder)),
     vscode.workspace.onDidChangeConfiguration(e => { if (e.affectsConfiguration("configMatch")) { tree.refresh(); post({ type: "config", state: stateForUi() }); } }),
     { dispose: () => watchers.forEach(w => w.dispose()) }
   );
+  setTimeout(() => offerSetup().catch(() => {}), 1500);
 }
 function deactivate() {}
 

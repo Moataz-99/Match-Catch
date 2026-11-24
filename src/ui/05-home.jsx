@@ -31,7 +31,8 @@ function guessNew(q){ const t=String(q||"").trim(); if(!t||/\s/.test(t)) return 
 
 /* ============================== HOME ============================== */
 function HomeTab(p){
-  const {hs,envName,envList,parsedAll,analyses,changes,setAddSpec,setTab,switchEnv,pullLatest,busy,setFocusVar,q,setQ,fileOf}=p;
+  const {hs,envName,envList,parsedAll,analyses,changes,setAddSpec,setTab,switchEnv,pullLatest,busy,setFocusVar,q,setQ,fileOf,setupFolder}=p;
+  const noRepo=(envList||[]).some(e=>["bw5","spring"].some(s=>e[s]&&e[s].code==="no-repo"));
   const [hq,setHq]=useState("");
   const inputRef=useRef(null);
   useEffect(()=>{ const k=e=>{ if(e.key==="/"&&document.activeElement.tagName!=="INPUT"&&document.activeElement.tagName!=="TEXTAREA"){ e.preventDefault(); inputRef.current&&inputRef.current.focus(); } };
@@ -76,7 +77,9 @@ function HomeTab(p){
       </div>)}
     </div>
 
-    {!an&&(<div className="banner">⚠ “{envName}” can't be compared yet — {(!fileOf(envName,"bw5")?"the BW5 file":"")+((!fileOf(envName,"bw5")&&!fileOf(envName,"spring"))?" and ":"")+(!fileOf(envName,"spring")?"the Spring file":"")} {(!fileOf(envName,"bw5")&&!fileOf(envName,"spring"))?"are":"is"} not set up.
+    {noRepo&&(<div className="banner">⚠ The repositories aren't on this computer yet (or VS Code can't find them). Pick one folder and both are cloned there and opened — needs the VPN.
+      <button className="btn sm pri" disabled={!!busy} onClick={setupFolder}>Choose a folder — clone both…</button></div>)}
+    {!an&&!noRepo&&(<div className="banner">⚠ “{envName}” can't be compared yet — {(!fileOf(envName,"bw5")?"the BW5 file":"")+((!fileOf(envName,"bw5")&&!fileOf(envName,"spring"))?" and ":"")+(!fileOf(envName,"spring")?"the Spring file":"")} {(!fileOf(envName,"bw5")&&!fileOf(envName,"spring"))?"are":"is"} not set up.
       <button className="btn sm pri" onClick={()=>setTab("files")}>Set up files</button></div>)}
 
     {an&&<div className="stats">

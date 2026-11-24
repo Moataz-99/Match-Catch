@@ -33,6 +33,7 @@ The webview sends `{id, type, payload}` and the host replies `{replyTo: id, ok, 
 | `setCurrent` | `{env}` | stores last env, updates status bar |
 | `pull` | `{current}` | checkout base + pull in every distinct repo, then `loadAll` result + `pulled:[repo names]` |
 | `chooseRepo` | `{env, side}` | folder dialog → setting `bw5RepoFolder`/`springRepoFolder` → `loadAll` |
+| `setup` | `{current}` | folder dialog → clone each repo not already there (`git clone` with VS Code's git binary) → settings `bw5RepoFolder`/`springRepoFolder` → `loadAll` result + `setup:{folder, repos:[{side, name, folder, cloned}]}` |
 | `chooseFile` | `{env, side}` | file dialog inside that repo → saves relative path into the env → `loadAll` |
 | `addEnvironment` | — | input box → appends `{name, bw5File:"", springFile:"", springRoot:""}` → `loadAll` |
 | `setRoot` | `{env, root}` | saves `springRoot` ("" = auto) |

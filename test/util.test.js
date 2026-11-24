@@ -47,3 +47,10 @@ test("encoding: UTF-8 stays UTF-8, Latin-1 is detected and round-trips byte for 
   assert.ok(Buffer.from(d.text,d.enc).equals(l));
   assert.equal(U.decode(Buffer.from("plain=ascii\n")).enc,"utf8");
 });
+test("clone URL and folder name from the GitLab address + project",()=>{
+  assert.equal(U.cloneUrl("https://git.vf-eg.internal.vodafone.com/","/tibco/Common-Resources"),"https://git.vf-eg.internal.vodafone.com/tibco/Common-Resources.git");
+  assert.equal(U.cloneUrl("git.example.com","integration-java/helm-template.git"),"https://git.example.com/integration-java/helm-template.git");
+  assert.equal(U.cloneUrl("","a/b"),""); assert.equal(U.cloneUrl("https://h",""),"");
+  assert.equal(U.cloneFolderName("integration-java/helm-template"),"helm-template");
+  assert.equal(U.cloneFolderName("tibco/Common-Resources.git"),"Common-Resources");
+});
